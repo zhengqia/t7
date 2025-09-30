@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金币雨游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .score-board {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 30px;
+            z-index: 1000;
+        }
+
+        .score, .timer {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .click-button {
+            width: 220px;
+            height: 220px;
+            background: linear-gradient(145deg, #ff4444, #cc0000);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow:
+                0 15px 30px rgba(255, 0, 0, 0.5),
+                0 8px 15px rgba(0, 0, 0, 0.4),
+                inset 0 -8px 20px rgba(0, 0, 0, 0.3),
+                inset 0 8px 20px rgba(255, 100, 100, 0.4);
+            z-index: 100;
+            position: relative;
+        }
+
+        .click-button::before {
+            content: '';
+            position: absolute;
+            top: 15%;
+            left: 15%;
+            right: 15%;
+            height: 30%;
+            background: radial-gradient(ellipse at center top, rgba(255, 255, 255, 0.6), transparent);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .click-button:hover {
+            background: linear-gradient(145deg, #ff5555, #dd0000);
+            transform: translateY(-3px);
+            box-shadow:
+                0 18px 35px rgba(255, 0, 0, 0.6),
+                0 10px 20px rgba(0, 0, 0, 0.5),
+                inset 0 -8px 20px rgba(0, 0, 0, 0.3),
+                inset 0 8px 20px rgba(255, 100, 100, 0.5);
+        }
+
+        .click-button:active {
+            transform: translateY(5px);
+            box-shadow:
+                0 8px 15px rgba(255, 0, 0, 0.4),
+                0 4px 8px rgba(0, 0, 0, 0.3),
+                inset 0 -3px 10px rgba(0, 0, 0, 0.4),
+                inset 0 3px 10px rgba(255, 100, 100, 0.3);
+        }
+
+        .coin {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #ffd700, #ffb000);
+            border-radius: 50%;
+            border: 2px solid #ffb000;
+            z-index: 10;
+            transition: all 0.03s linear;
+        }
+
+        .coin::before {
+            content: '¥';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            color: #8b6914;
+            font-size: 16px;
+        }
+
+        .combo-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            animation: comboAnim 1s ease-out forwards;
+            z-index: 200;
+            pointer-events: none;
+        }
+
+        @keyframes comboAnim {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0;
+            }
+        }
+
+        .burst-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 72px;
+            font-weight: bold;
+            color: #ff6b00;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+            animation: burstAnim 1.5s ease-out forwards;
+            z-index: 250;
+            pointer-events: none;
+        }
+
+        @keyframes burstAnim {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            30% {
+                transform: translate(-50%, -50%) scale(1.5);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0;
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+            20%, 40%, 60%, 80% { transform: translateX(10px); }
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .game-over h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #ffd700;
+        }
+
+        .game-over p {
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+
+        .restart-btn {
+            background: #ff0000;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .restart-btn:hover {
+            background: #ff3333;
+        }
+
+        .start-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .start-screen h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #ffd700;
+        }
+
+        .start-screen p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .start-btn {
+            background: #ff0000;
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            font-size: 24px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .start-btn:hover {
+            background: #ff3333;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="start-screen" id="startScreen">
+            <h1>🪙 金币雨游戏</h1>
+            <p>点击红色按钮掉落金币！<br>
+            连续点击5次触发爆金币！<br>
+            60秒内收集尽可能多的金币！</p>
+            <button class="start-btn" onclick="startGame()">开始游戏</button>
+        </div>
+
+        <div class="score-board">
+            <div class="score">得分: <span id="score">0</span></div>
+            <div class="timer">时间: <span id="timer">60</span>s</div>
+        </div>
+
+        <button class="click-button" id="clickButton" onclick="dropCoins()" style="display: none;">
+            点击掉金币
+        </button>
+
+        <div class="game-over" id="gameOver">
+            <h2>🏆 游戏结束！</h2>
+            <p>最终得分: <span id="finalScore">0</span> 金币</p>
+            <button class="restart-btn" onclick="restartGame()">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        let score = 0;
+        let timeLeft = 60;
+        let gameRunning = false;
+        let gameTimer;
+        let consecutiveClicks = 0;
+        let lastClickTime = 0;
+        let comboTimeout;
+        let coins = [];
+        let animationFrame;
+        let burstMultiplier = 0;
+
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(frequency, duration, type = 'sine') {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            oscillator.type = type;
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function playCoinSound() {
+            // 模拟大量铜钱碰撞的声音 - 使用白噪声和滤波
+            const bufferSize = audioContext.sampleRate * 0.15; // 150ms
+            const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+            const data = buffer.getChannelData(0);
+
+            // 生成带有衰减的噪声
+            for (let i = 0; i < bufferSize; i++) {
+                const decay = 1 - (i / bufferSize);
+                data[i] = (Math.random() * 2 - 1) * decay * 0.3;
+            }
+
+            const source = audioContext.createBufferSource();
+            source.buffer = buffer;
+
+            // 使用带通滤波器模拟金属碰撞声
+            const filter = audioContext.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(800, audioContext.currentTime);
+            filter.Q.setValueAtTime(5, audioContext.currentTime);
+
+            const gainNode = audioContext.createGain();
+            gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+
+            source.connect(filter);
+            filter.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            source.start(audioContext.currentTime);
+            source.stop(audioContext.currentTime + 0.15);
+        }
+
+        function playExplosionSound() {
+            // 爆炸音效
+            playSound(100, 0.1, 'sawtooth');
+            setTimeout(() => playSound(80, 0.15, 'sawtooth'), 50);
+            setTimeout(() => playSound(60, 0.2, 'sawtooth'), 100);
+            setTimeout(() => playSound(40, 0.3, 'sawtooth'), 150);
+        }
+
+        function playBurstSound() {
+            playCoinSound();
+            // 增强的爆金币音效
+            for (let i = 0; i < 8; i++) {
+                setTimeout(() => {
+                    playSound(600 + i * 100, 0.15, 'triangle');
+                }, i * 50);
+            }
+        }
+
+        function shakeScreen() {
+            const body = document.body;
+            body.style.animation = 'shake 0.5s';
+            setTimeout(() => {
+                body.style.animation = '';
+            }, 500);
+        }
+
+        function playComboSound(level) {
+            const frequency = 500 + level * 100;
+            playSound(frequency, 0.3, 'triangle');
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('clickButton').style.display = 'block';
+            gameRunning = true;
+            score = 0;
+            timeLeft = 60;
+            consecutiveClicks = 0;
+            burstMultiplier = 0;
+            coins = [];
+            updateDisplay();
+            startPhysics();
+
+            gameTimer = setInterval(() => {
+                timeLeft--;
+                updateDisplay();
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            gameRunning = false;
+            clearInterval(gameTimer);
+            cancelAnimationFrame(animationFrame);
+            document.getElementById('clickButton').style.display = 'none';
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+
+        function restartGame() {
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'block';
+            clearAllCoins();
+        }
+
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('timer').textContent = timeLeft;
+        }
+
+        function dropCoins() {
+            if (!gameRunning) return;
+
+            const currentTime = Date.now();
+
+            if (currentTime - lastClickTime < 1000) {
+                consecutiveClicks++;
+            } else {
+                consecutiveClicks = 1;
+            }
+            lastClickTime = currentTime;
+
+            clearTimeout(comboTimeout);
+            comboTimeout = setTimeout(() => {
+                consecutiveClicks = 0;
+            }, 1000);
+
+            if (consecutiveClicks >= 5) {
+                triggerBurst();
+                consecutiveClicks = 0;
+            } else {
+                const coinCount = Math.floor(Math.random() * 11) + 10;
+                createCoins(coinCount);
+                playCoinSound();
+
+                if (consecutiveClicks > 1) {
+                    showCombo(consecutiveClicks);
+                    playComboSound(consecutiveClicks);
+                }
+            }
+        }
+
+        function triggerBurst() {
+            burstMultiplier++;
+            const coinCount = 50 * burstMultiplier;
+            createCoins(coinCount);
+            showBurst();
+            playBurstSound();
+
+            // 每3次爆金币发出爆炸声（包括第3次）
+            if (burstMultiplier >= 3 && burstMultiplier % 3 === 0) {
+                playExplosionSound();
+            }
+
+            // 连续10次以后，每次都有爆炸声
+            if (burstMultiplier >= 10) {
+                playExplosionSound();
+            }
+
+            // 每10次爆金币屏幕振动
+            if (burstMultiplier % 10 === 0) {
+                shakeScreen();
+            }
+        }
+
+        function createCoins(count) {
+            const button = document.getElementById('clickButton');
+            const buttonRect = button.getBoundingClientRect();
+            const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+            const buttonCenterY = buttonRect.top + buttonRect.height / 2;
+
+            for (let i = 0; i < count; i++) {
+                const coin = document.createElement('div');
+                coin.className = 'coin';
+
+                // 从按钮的上下左右各个方向喷出
+                const angle = Math.random() * Math.PI * 2; // 全方向
+                const speed = 5 + Math.random() * 10;
+                const vx = Math.cos(angle) * speed;
+                const vy = Math.sin(angle) * speed - 5; // 向上的初速度
+
+                const coinData = {
+                    element: coin,
+                    x: buttonCenterX,
+                    y: buttonCenterY,
+                    vx: vx,
+                    vy: vy,
+                    rotation: Math.random() * 360
+                };
+
+                coin.style.left = coinData.x + 'px';
+                coin.style.top = coinData.y + 'px';
+                document.body.appendChild(coin);
+
+                coins.push(coinData);
+                score++;
+                updateDisplay();
+            }
+        }
+
+        function startPhysics() {
+            function update() {
+                const gravity = 0.5;
+                const bounce = 0.6;
+                const friction = 0.99;
+                const groundY = window.innerHeight - 30;
+
+                // 优化：只对最近添加的金币进行完整物理计算
+                const activeCount = Math.min(coins.length, 100);
+
+                for (let i = coins.length - 1; i >= 0; i--) {
+                    const coin = coins[i];
+                    const isActive = i >= coins.length - activeCount;
+
+                    if (isActive) {
+                        // 完整物理计算
+                        coin.vy += gravity;
+                        coin.x += coin.vx;
+                        coin.y += coin.vy;
+                        coin.vx *= friction;
+                        coin.rotation += coin.vx * 2;
+
+                        // 碰到底部
+                        if (coin.y >= groundY) {
+                            coin.y = groundY;
+                            coin.vy *= -bounce;
+                            coin.vx *= friction;
+
+                            if (Math.abs(coin.vy) < 0.5) {
+                                coin.vy = 0;
+                                coin.vx = 0;
+                            }
+                        }
+
+                        // 简化的碰撞检测 - 只检测附近的金币
+                        for (let j = Math.max(0, i - 20); j < i; j++) {
+                            const other = coins[j];
+                            const dx = coin.x - other.x;
+                            const dy = coin.y - other.y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+
+                            if (distance < 30 && distance > 0) {
+                                const angle = Math.atan2(dy, dx);
+                                const overlap = 30 - distance;
+                                coin.x += Math.cos(angle) * overlap * 0.5;
+                                coin.y += Math.sin(angle) * overlap * 0.5;
+
+                                if (Math.abs(coin.vy) < 2 && coin.y >= groundY - 100) {
+                                    coin.vy = 0;
+                                    coin.vx *= 0.8;
+                                }
+                            }
+                        }
+
+                        // 碰到左右边界
+                        if (coin.x < 0) {
+                            coin.x = 0;
+                            coin.vx *= -bounce;
+                        } else if (coin.x > window.innerWidth - 30) {
+                            coin.x = window.innerWidth - 30;
+                            coin.vx *= -bounce;
+                        }
+                    }
+
+                    // 更新位置（所有金币）
+                    coin.element.style.left = coin.x + 'px';
+                    coin.element.style.top = coin.y + 'px';
+                    if (isActive) {
+                        coin.element.style.transform = `rotate(${coin.rotation}deg)`;
+                    }
+                }
+
+                // 限制金币数量，从底部开始移除
+                if (coins.length > 300) {
+                    const removeCount = coins.length - 300;
+                    for (let i = 0; i < removeCount; i++) {
+                        if (coins[i] && coins[i].element.parentNode) {
+                            coins[i].element.remove();
+                        }
+                    }
+                    coins.splice(0, removeCount);
+                }
+
+                if (gameRunning) {
+                    animationFrame = requestAnimationFrame(update);
+                }
+            }
+            update();
+        }
+
+        function showCombo(level) {
+            const comboDiv = document.createElement('div');
+            comboDiv.className = 'combo-display';
+            comboDiv.textContent = `连击 +${level}!`;
+            document.body.appendChild(comboDiv);
+
+            setTimeout(() => {
+                if (comboDiv.parentNode) {
+                    comboDiv.parentNode.removeChild(comboDiv);
+                }
+            }, 1000);
+        }
+
+        function showBurst() {
+            const burstDiv = document.createElement('div');
+            burstDiv.className = 'burst-effect';
+            burstDiv.textContent = `💥 ${burstMultiplier}倍爆金币! 💥`;
+            document.body.appendChild(burstDiv);
+
+            setTimeout(() => {
+                if (burstDiv.parentNode) {
+                    burstDiv.parentNode.removeChild(burstDiv);
+                }
+            }, 1500);
+        }
+
+        function clearAllCoins() {
+            coins.forEach(coinData => {
+                if (coinData.element.parentNode) {
+                    coinData.element.parentNode.removeChild(coinData.element);
+                }
+            });
+            coins = [];
+
+            const combos = document.querySelectorAll('.combo-display');
+            combos.forEach(combo => {
+                if (combo.parentNode) {
+                    combo.parentNode.removeChild(combo);
+                }
+            });
+
+            const bursts = document.querySelectorAll('.burst-effect');
+            bursts.forEach(burst => {
+                if (burst.parentNode) {
+                    burst.parentNode.removeChild(burst);
+                }
+            });
+        }
+
+        document.addEventListener('click', function() {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        });
+    </script>
+</body>
+</html>
